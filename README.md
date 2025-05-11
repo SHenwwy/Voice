@@ -16,7 +16,7 @@ Given a video URL:
 
  1. Clone the repo:
     ```bash
-    git clone https://github.com/SHenwwy/accent-detector.git
+    git clone https://github.com/SHenwwy/Voice.git
     cd accent-detector
 
  2. Install dependencies
