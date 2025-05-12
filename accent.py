@@ -22,7 +22,17 @@ ACCENT_EMBEDDINGS = {
 def load_and_preprocess(audio_path: str):
     waveform, sample_rate = torchaudio.load(audio_path)
 
+    # Ensure mono audio
+    if waveform.shape[0] > 1:
+        waveform = waveform.mean(dim=0, keepdim=True)
+
+    # Check audio length (must be at least ~1 second)
+    duration_seconds = waveform.shape[1] / sample_rate
+    if duration_seconds < 1:
+        raise ValueError("Audio is too short to process.")
+
     return waveform, sample_rate
+
 
 
 def download_and_extract_audio(url: str) -> str:
@@ -39,11 +49,13 @@ def download_and_extract_audio(url: str) -> str:
 def classify_accent(audio_path):
     waveform, sample_rate = load_and_preprocess(audio_path)
 
-    if waveform.shape[0] > 1:
-        waveform = waveform.mean(dim=0, keepdim=True)
-
     # Add batch dimension
     embedding = spk_model.encode_batch(waveform.unsqueeze(0))
+    
+    # Validate output
+    if embedding is None or embedding.ndim != 3:
+        raise ValueError("Failed to generate valid speaker embedding.")
+
     embedding = embedding.squeeze().detach()
 
     scores = {}
