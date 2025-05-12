@@ -39,17 +39,19 @@ def download_and_extract_audio(url: str) -> str:
 def classify_accent(audio_path):
     waveform, sample_rate = load_and_preprocess(audio_path)
 
-    
-    embedding = spk_model.encode_batch(waveform)
-    embedding = embedding.squeeze(0)  
+    if waveform.shape[0] > 1:
+        waveform = waveform.mean(dim=0, keepdim=True)
 
-    
+    # Add batch dimension
+    embedding = spk_model.encode_batch(waveform.unsqueeze(0))
+    embedding = embedding.squeeze().detach()
+
     scores = {}
     for accent, accent_vector in ACCENT_EMBEDDINGS.items():
-        embedding_reshaped = embedding.view(1, -1)  
-        accent_vector_reshaped = accent_vector.view(1, -1)  
-        similarity = torch.nn.functional.cosine_similarity(embedding_reshaped, accent_vector_reshaped, dim=1)
-        scores[accent] = similarity.item() * 100  
+        similarity = torch.nn.functional.cosine_similarity(
+            embedding.view(1, -1), accent_vector.view(1, -1), dim=1
+        )
+        scores[accent] = similarity.item() * 100
 
     best_accent = max(scores, key=scores.get)
     best_score = scores[best_accent]
